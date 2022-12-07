@@ -4,7 +4,6 @@ from .forward import *
 from .graphics.image import *
 from .virtualization.iscreen import *
 
-
 ###############################################################################
 class IMatterInfo(object):
     def __init__(self, master):
