@@ -4,22 +4,24 @@ from mpython import *
 from machine import Timer as SysTimer
 
 ###############################################
-class Timer(object):
+class _Timer(object):
   _id = 0
   
   def __init__(self, interval):
-    Timer._id += 1
-    self._self = SysTimer(Timer._id)
+    super(_Timer, self).__init__()
+
+    _Timer._id += 1
+    self._self = SysTimer(_Timer._id)
     self._self.init(period=interval, mode=SysTimer.PERIODIC,
                       callback= lambda a: self.on_tick(a))
     
   def on_tick(self, _):
     pass
 
-class PhysicsWatcher(Timer):
+class _PhysicsWatcher(_Timer):
   def __init__(self, target):
+    super(_PhysicsWatcher, self).__init__(100)
     self.target = target
-    super(PhysicsWatcher, self).__init__(100)
     
   def on_tick(self, _):
     datum = light.read()
@@ -34,12 +36,10 @@ class PhysicsWatcher(Timer):
   def on_sound(self, value, percentage):
     self.target.on_sound(value, percentage)
     
-class TouchpadWatcher(Timer):
+class _TouchpadWatcher(_Timer):
   def __init__(self, threshold, target):
+    super(_TouchpadWatcher, self).__init__(100)
     self.target = target
-    
-    super(TouchpadWatcher, self).__init__(100)
-    
     self._threshold = { 'P': threshold, 'Y': threshold, 'T': threshold, 'H': threshold, 'O': threshold, 'N': threshold }
     
   def on_tick(self, _):
@@ -64,8 +64,9 @@ class TouchpadWatcher(Timer):
     else:
       self.on_touchpad_key(keyname, idx, False)
       
-class ButtonWatcher(object):
+class _ButtonWatcher(object):
   def __init__(self, target):
+    super(_ButtonWatcher, self).__init__()
     self.target = target
     button_a.irq(trigger=Pin.IRQ_FALLING,
                   handler= lambda a: self._ugly_python(button_a.value(), button_b.value(), 'A'))
@@ -87,9 +88,9 @@ class ButtonWatcher(object):
         self.on_button_key(who, False)
 
 ###############################################################################
-class Universe(Timer):
+class Universe(_Timer):
 # public
-    def __init__(self, interval, width = 128, height = 64):
+    def __init__(self, interval, background = None, width = 128, height = 64):
         """ 构造函数，在创建游戏世界时自动调用 """
         
         # The constructors of base classes must be invoked explicitly
@@ -99,6 +100,7 @@ class Universe(Timer):
         # Please search "Python sequence unpacking"(序列解包)
         self.__window_width, self.__window_height = 128, 64
         self.__count, self.__interval, self.__uptime = 0, interval, 0
+        self.__background = background
         self.__update_sequence_depth = 0
         self.__update_is_needed = False
         self.__button_watcher = None
@@ -125,7 +127,7 @@ class Universe(Timer):
         """ 更新游戏世界，定时器到期时自动调用，默认什么都不做 """
         pass
 
-    def draw(self, x, y, width, height):
+    def draw(self, ledscr, x, y, width, height):
         """ 绘制游戏世界，在合适的时候自动调用，默认什么都不做 """
         pass
 
@@ -136,9 +138,9 @@ class Universe(Timer):
     def big_bang(self):
         """ 宇宙大爆炸，开启游戏主循环，返回游戏运行时间 """
 
-        self.__touchpad_watcher = TouchpadWatcher(400, self)
-        self.__button_watcher = ButtonWatcher(self)
-        self.__physics_watcher = PhysicsWatcher(self)
+        self.__touchpad_watcher = _TouchpadWatcher(400, self)
+        self.__button_watcher = _ButtonWatcher(self)
+        self.__physics_watcher = _PhysicsWatcher(self)
         
         self.__window_width, self.__window_height = self.get_window_size()
         self.begin_update_sequence()
@@ -155,9 +157,9 @@ class Universe(Timer):
         return self.get_window_size()
 
     def refresh(self):
-        oled.fill(0)
-        self.draw(0, 0, self.__width, self.__height)
-        oled.show()        
+        self._on_refresh(oled, self.__width, self.__height)
+        self.draw(oled, 0, 0, self.__width, self.__height)
+        oled.show()
 
     def on_tick(self, _):
         if self.__button_watcher:
@@ -215,6 +217,11 @@ class Universe(Timer):
 
     # 响应定时器事件，刷新游戏世界
     def _on_elapse(self, interval, count, uptime):
-        """ 响应定时器事件，刷新游戏世界 """
         self.update(interval, count, uptime)
         self.notify_updated()
+
+    # 每次刷新屏幕之前调用，默认清屏
+    def _on_refresh(self, ledscr, width, height):
+      ledscr.fill(0)
+      if self.__background:
+        ledscr.Bitmap(0, 0, self.__background, width, height, 0)
