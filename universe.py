@@ -3,6 +3,8 @@
 from mpython import *
 from machine import Timer as SysTimer
 
+import time
+
 ###############################################
 class _Timer(object):
   _id = 0
@@ -15,7 +17,7 @@ class _Timer(object):
     self._self.init(period=interval, mode=SysTimer.PERIODIC,
                       callback= lambda a: self.on_tick(a))
     
-  def on_tick(self, _):
+  def on_tick(self, who):
     pass
 
 class _PhysicsWatcher(_Timer):
@@ -93,13 +95,10 @@ class Universe(_Timer):
     def __init__(self, interval, background = None, width = 128, height = 64):
         """ 构造函数，在创建游戏世界时自动调用 """
         
-        # The constructors of base classes must be invoked explicitly
-        # even if there is only one that has no argument
         super(Universe, self).__init__(interval)
         
-        # Please search "Python sequence unpacking"(序列解包)
-        self.__window_width, self.__window_height = 128, 64
-        self.__count, self.__interval, self.__uptime = 0, interval, 0
+        self.__screen_width, self.__screen_height = width, height
+        self.__count, self.__interval, self.__uptime, self.__uptime0 = 0, interval, 0, -1
         self.__background = background
         self.__update_sequence_depth = 0
         self.__update_is_needed = False
@@ -107,12 +106,7 @@ class Universe(_Timer):
         self.__touchpad_watcher = None
         self.__physics_watcher = None
 
-        # Python doesn't need two-step initialization as C++ does
         self.construct()
-
-    def __getattr__(self, name):
-        def method(*args): pass
-        return method
 
 # public
     def construct(self):
@@ -142,10 +136,11 @@ class Universe(_Timer):
         self.__button_watcher = _ButtonWatcher(self)
         self.__physics_watcher = _PhysicsWatcher(self)
         
-        self.__window_width, self.__window_height = self.get_window_size()
+        self.__uptime0 = time.ticks_ms()
+        self.__screen_width, self.__screen_height = self.get_window_size()
         self.begin_update_sequence()
-        self._on_big_bang(self.__window_width, self.__window_height)
-        self.reflow(self.__window_width, self.__window_height)
+        self._on_big_bang(self.__screen_width, self.__screen_height)
+        self.reflow(self.__screen_width, self.__screen_height)
         self.notify_updated()
         self.end_update_sequence()
 
@@ -157,14 +152,14 @@ class Universe(_Timer):
         return self.get_window_size()
 
     def refresh(self):
-        self._on_refresh(oled, self.__width, self.__height)
-        self.draw(oled, 0, 0, self.__width, self.__height)
+        self._on_refresh(oled, self.__screen_width, self.__screen_height)
+        self.draw(oled, 0, 0, self.__screen_width, self.__screen_height)
         oled.show()
 
     def on_tick(self, _):
-        if self.__button_watcher:
+        if self.__uptime0 >= 0:
             self.__count += 1
-            self.__uptime += self.__interval
+            self.__uptime = time.ticks_ms() - self.__uptime0
             self._on_elapse(self.__interval, self.__count, self.__uptime)
 
 # public
