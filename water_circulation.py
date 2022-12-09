@@ -1,4 +1,3 @@
-# MindPlus with microPython
 # Water Circulation
 
 from universe import *
@@ -109,3 +108,10 @@ class WaterCirculation(Universe):
     self.status = 0
     self.cloud_size = 0
     ledscr.contrast(255)
+
+
+
+###################################################################################################
+if __name__ == "__main__":
+  universe = WaterCirculation(24)
+  universe.big_bang()

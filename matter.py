@@ -88,7 +88,7 @@ class IMatter(object):
         if anchor != MatterAnchor.LT:
             if self.info:
                 self.__anchor = anchor
-                self.__anchor_x, self.__anchor_y = self.info.master.get_matter_location(self)
+                self.__anchor_x, self.__anchor_y = self.info.master.get_matter_location(self, anchor)
 
     def clear_moor(self):
         self.__anchor = MatterAnchor.LT
@@ -96,7 +96,7 @@ class IMatter(object):
     def notify_updated(self):
         if self.info:
             if self.__anchor != MatterAnchor.LT:
-                self.info.master.move_to(self, self.__anchor_x, self.__anchor_y, self.__anchor)
+                self.info.master.move_to(self, (self.__anchor_x, self.__anchor_y), self.__anchor)
                 self.clear_moor()
             
             self.info.master.notify_updated()
@@ -169,8 +169,11 @@ class IMovable(IMatter):
                 self.__set_border_strategy(strategy[0], strategy[1], strategy[2], strategy[3])
     
 # public
-    def set_speed(self, speed, degree):
-        rad = math.radians(degree)
+    def set_speed(self, speed, direction, is_radian = False):
+        rad = direction
+        
+        if not is_radian:
+            rad = math.radians(direction)
 
         self.__xspeed = speed * math.cos(rad)
         self.__yspeed = speed * math.sin(rad)
@@ -261,7 +264,7 @@ class Linelet(IShapelet):
         self.__epy = ey
         
     def get_extent(self, x, y):
-        return abs(self.__epx), abs(self.__epy)
+        return max(abs(self.__epx), 1.0), max(abs(self.__epy), 1.0)
 
     def _on_resize(self, w, h, width, height):
         self.__epx *= w / width
@@ -279,12 +282,12 @@ class Linelet(IShapelet):
         ledscr.line(x, y, x + xn, y + yn, c)
 
 class HLinelet(Linelet):
-    def __init__(self, width, color):
-        super(HLinelet, self).__init__(width, 0.0, color)
+    def __init__(self, width, c = 1):
+        super(HLinelet, self).__init__(width, 0.0, c)
 
 class VLinelet(Linelet):
-    def __init__(self, height, color):
-        super(VLinelet, self).__init__(0.0, height, color)
+    def __init__(self, height, c = 1):
+        super(VLinelet, self).__init__(0.0, height, c)
 
 ###################################################################################################
 class Rectanglet(IShapelet):
@@ -370,3 +373,33 @@ class Circlet(IShapelet):
     def _fill_shape(self, ledscr, x, y, width, height, c):
         r = round(self.__radius) - 1
         ledscr.fill_circle(x + r, y + r, r, c)
+
+class Labellet(IShapelet):
+    def __init__(self, text, mode = 3):
+        super(Labellet, self).__init__(True, mode)
+        self.enable_resizing(False)
+        self.__text = text
+        self.__width = False
+        self.__height = 16.0
+
+    def set_text(self, text, anchor = MatterAnchor.CC):
+        content = str(text)
+
+        if self.__text != content:
+            self.moor(anchor)
+            self.__text = content
+            self.__width = False
+            self.notify_updated()
+
+    def get_extent(self, x, y):
+        w = self.__width
+        h = self.__height
+
+        if not w:
+            w = len(self.__text) * 8.0
+
+        return w, h
+
+    def _fill_shape(self, ledscr, x, y, width, height, c):
+        rtuple = ledscr.DispChar(self.__text, x, y, c, True)
+        self.__width = rtuple[0]

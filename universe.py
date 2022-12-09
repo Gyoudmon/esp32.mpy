@@ -23,6 +23,7 @@ class _PhysicsWatcher(_Timer):
     def __init__(self, target):
         super(_PhysicsWatcher, self).__init__(100)
         self.target = target
+        accelerometer.set_range(3)
     
     def on_tick(self, _):
         datum = light.read()
@@ -150,6 +151,12 @@ class Universe(_Timer):
     def get_extent(self):
         return self.get_window_size()
 
+    def contrast(self, brightness):
+        oled.contrast(brightness)
+
+    def invert(self, n):
+        oled.invert(n)
+
     def refresh(self):
         self._on_refresh(oled, self.__screen_width, self.__screen_height)
         self.draw(oled, 0, 0, self.__screen_width, self.__screen_height)
@@ -160,6 +167,13 @@ class Universe(_Timer):
             self.__count += 1
             self.__uptime = time.ticks_ms() - self.__uptime0
             self._on_elapse(self.__interval, self.__count, self.__uptime)
+
+# public
+    def get_acceleration(self):
+        return accelerometer.get_x(), accelerometer.get_y(), accelerometer.get_z()
+
+    def get_roll_pitch_angle(self):
+        return accelerometer.roll_pitch_angle()
 
 # public
     def begin_update_sequence(self):

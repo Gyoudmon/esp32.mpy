@@ -214,7 +214,7 @@ class Cosmos(Universe):
                     x = xtx + xtw * target[1]
                     y = yty + yth * target[2]
 
-        if x and y:
+        if not isinstance(x, bool) and not isinstance(y, bool):
             fx, fy = _matter_anchor_fraction(anchor)
             
             if _unsafe_move_matter_via_info(self, matter, info, x, y, fx, fy, dx, dy):
@@ -382,16 +382,14 @@ def _unsafe_get_matter_bound(m, info):
     return info.x, info.y, width, height
 
 def _matter_anchor_fraction(a):
-    fx, fy = 0.0, 0.0
-
     if isinstance(a, int): 
-        if a == MatterAnchor.LT: pass
-        elif a == MatterAnchor.LC: fy = 0.5
-        elif a == MatterAnchor.LB: fy = 1.0
-        elif a == MatterAnchor.CT: fx = 0.5          
+        if   a == MatterAnchor.LT: fx, fy = 0.0, 0.0
+        elif a == MatterAnchor.LC: fx, fy = 0.0, 0.5
+        elif a == MatterAnchor.LB: fx, fy = 0.0, 1.0
+        elif a == MatterAnchor.CT: fx, fy = 0.5, 0.0          
         elif a == MatterAnchor.CC: fx, fy = 0.5, 0.5
         elif a == MatterAnchor.CB: fx, fy = 0.5, 1.0
-        elif a == MatterAnchor.RT: fx = 1.0
+        elif a == MatterAnchor.RT: fx, fy = 1.0, 0.0
         elif a == MatterAnchor.RC: fx, fy = 1.0, 0.5
         elif a == MatterAnchor.RB: fx, fy = 1.0, 1.0
     else:
