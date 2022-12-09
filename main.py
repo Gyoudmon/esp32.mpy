@@ -1,6 +1,6 @@
-from water_circulation import *
+from football_shot import *
 
 ###############################################
 if __name__ == "__main__":
-  universe = WaterCirculation(100)
+  universe = FootballShot(24)
   universe.big_bang()

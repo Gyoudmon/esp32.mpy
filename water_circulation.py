@@ -9,8 +9,8 @@ background = bytearray([0x3f,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0
 
 ###############################################
 class WaterCirculation(Universe):
-  def __init__(self, interval):
-    super(WaterCirculation, self).__init__(interval, background)
+  def __init__(self, fps):
+    super(WaterCirculation, self).__init__(fps, background)
     
     self.vapors = []
     self.falls = []
